@@ -55,21 +55,96 @@ export function generateImagePrompt(config: ThumbnailConfig): string {
     `;
 
     // 4. Composition & Layout
-    const layoutInstructions: Record<LayoutType, string> = {
-        'centered': "Central Composition: Subject is dead center. Symmetrical, balanced, and powerful.",
-        'thirds-left': "Rule of Thirds: Subject positioned on the left third. Open space on the right for text.",
-        'thirds-right': "Rule of Thirds: Subject positioned on the right third. Open space on the left for text.",
-        'vs': "Versus / Showdown: Split screen diagonal composition. Different elements on each side comparing contrast.",
-        'reaction': "Reaction Shot: Extreme close-up or selfie angle of the subject in a corner/foreground, reacting to a background event.",
-        'group': "Group Shot: Subjects arranged in a cohesive formation (V-shape or line). Unified team presence.",
-        'perspective': "Forced Perspective: Exaggerated scale. Hand or object in foreground looking huge, subject in background.",
-        'brainstorm': "Mind Map: Subject in center with elements/icons floating around them. Dynamic energy connections.",
-        'split': "Split Screen: Hard vertical division. Left side distinct from right side (e.g., Before/After).",
-        'silhouette': "Silhouette: Strong backlighting creating a dark subject shape against a bright, vivid background."
+    // 4. Composition & Layout
+    const COMPOSITION_BY_COUNT: Record<LayoutType, Record<number, string>> = {
+        'centered': {
+            1: "Central Composition (Single): The sole subject is dead center, commanding the frame with direct eye contact. Symmetrical balance.",
+            2: "Central Composition (Duo): Two subjects standing back-to-back or side-by-side in the center. Perfectly balanced symmetry.",
+            3: "Central Composition (Trio): One main subject in front-center, flanked by two others slightly behind. Pyramid composition.",
+            4: "Central Composition (Quartet): Four subjects arranged in a diamond or square formation in the center. Tight grouping.",
+            5: "Central Composition (Quintet): One central leader figure surrounded by four others in a semi-circle. Strong focal point.",
+            6: "Central Composition (Ensemble): A dense central group of 6+ people, layered depth, looking like a powerful team poster."
+        },
+        'thirds-left': {
+            1: "Rule of Thirds (Single): Subject stands on the left verical third line. Empty space on the right for text.",
+            2: "Rule of Thirds (Duo): Two subjects clustered on the left side. One slightly in front of the other.",
+            3: "Rule of Thirds (Trio): Three subjects standing in a row or wedge on the left side of the frame.",
+            4: "Rule of Thirds (Group): A cluster of 4 people on the left. dynamic interaction within the group.",
+            5: "Rule of Thirds (Crowd): A defined group of 5 filling the left half of the frame, leaving the right side clear.",
+            6: "Rule of Thirds (Mass): A large group of 6+ people packed into the left side, creating a wall of faces."
+        },
+        'thirds-right': {
+            1: "Rule of Thirds (Single): Subject stands on the right vertical third line. Empty space on the left for text.",
+            2: "Rule of Thirds (Duo): Two subjects clustered on the right side. Interactive pose.",
+            3: "Rule of Thirds (Trio): Three subjects arranged continuously on the right side.",
+            4: "Rule of Thirds (Group): Four people grouped tightly on the right side. Depth arrangement.",
+            5: "Rule of Thirds (Crowd): Five people filling the right side of the screen. Dynamic layering.",
+            6: "Rule of Thirds (Mass): 6+ people crowding the right side, leaving the left open for massive text."
+        },
+        'vs': {
+            1: "Versus (Split Self): A visual split effect. The same person shown twice in contrasting moods (e.g., Happy vs Sad) on left and right.",
+            2: "Versus (Duel): One person on the far left, one on the far right. Facing each other aggressively or competitively. Space in middle.",
+            3: "Versus (Uneven): One main rival on left vs two challengers on right. Asymmetrical confrontation.",
+            4: "Versus (Team Battle): Two people on the left vs Two people on the right. Balanced standoff.",
+            5: "Versus (Boss Fight): One powerful figure on left vs a team of four on the right.",
+            6: "Versus (War): Three people on left vs Three people on right. Epic team clash composition."
+        },
+        'reaction': {
+            1: "Reaction (Selfie): Extreme close-up of face in the foreground corner (left or right). Blurred background event.",
+            2: "Reaction (Duo): Two people in the foreground corner reacting together to something behind them.",
+            3: "Reaction (Trio): Three heads popping up from the bottom or corner, shocked expressions.",
+            4: "Reaction (Group): A row of 4 distinct reaction faces along the bottom or side edge.",
+            5: "Reaction (Audience): 5 people reacting wildly, positioned to frame the main content in the background.",
+            6: "Reaction (Crowd): A sea of 6+ shocked faces filling the foreground, looking at a distant event."
+        },
+        'group': {
+            1: "Group (Solo Leader): One person stepping forward as if leading an invisible army. Command presence.",
+            2: "Group (Partners): Two partners standing shoulder-to-shoulder. Buddy cop movie poster vibe.",
+            3: "Group (Trio): Classic Charlie's Angels or band formation. V-shape arrangement.",
+            4: "Group (Squad): Four people walking towards the camera in a line. Slow-motion stride energy.",
+            5: "Group (Team): Five people in a wedge formation. The leader in front, others fanning out.",
+            6: "Group (Army): 6+ people filling the width of the frame. An overwhelming number of subjects."
+        },
+        'perspective': {
+            1: "Forced Perspective (Hand): Subject in background, their hand reaching close to lens holding an object (or empty).",
+            2: "Forced Perspective (Duo): One person huge in foreground (looking down), other person tiny in background.",
+            3: "Forced Perspective (Depth): One very close, one mid-ground, one far background. Extreme depth of field.",
+            4: "Forced Perspective (Line): A line of 4 people stretching from extreme foreground to infinity.",
+            5: "Forced Perspective (Circle): 5 people standing in a circle looking down at the camera (fisheye lens).",
+            6: "Forced Perspective (Tunnel): 6+ people forming a tunnel or aisle that recedes into the distance."
+        },
+        'brainstorm': {
+            1: "Mind Map (Solo): Subject in center, looking confused or inspired. Icons/Elements floating around their head.",
+            2: "Brainstorm (Discussion): Two people arguing or discussing. Ideas/graphics appearing between them.",
+            3: "Brainstorm (Roundtable): Three people looking at a central glowing object or plan.",
+            4: "Brainstorm (Team): Four people pointing at different floating diagrams in the air. Collaborative chaos.",
+            5: "Brainstorm (Huddle): Five people heads together in a circle looking at a map/plan.",
+            6: "Brainstorm (Classroom): One person teaching, 5+ people listening or taking notes with visible thought bubbles."
+        },
+        'split': {
+            1: "Split Screen (Before/After): The same person on both sides. Left side 'Before', Right side 'After'.",
+            2: "Split Screen (Duo): Vertical divider. Person A in their world (Left) vs Person B in their world (Right).",
+            3: "Split Screen (Trio): Three vertical panels. One person in each panel. Triptych style.",
+            4: "Split Screen (Quad): 2x2 Grid. One person in each quadrant. Different emotions.",
+            5: "Split Screen (Mixed): Left half has 1 person, Right half has 4 people in a grid.",
+            6: "Split Screen (Grid): 2x3 Grid. Six separate panels reacting differently."
+        },
+        'silhouette': {
+            1: "Silhouette (Hero): Single dark hero outline against a blazing sunset/explosion background.",
+            2: "Silhouette (Couple): Two silhouettes holding hands or fighting against a bright backdrop.",
+            3: "Silhouette (Trio): Three mysterious figures in shadow. Dramatic backlighting.",
+            4: "Silhouette (Squad): Four tactical silhouettes moving through smoke/mist.",
+            5: "Silhouette (Gang): Five distinct character outlines posed on a ridge.",
+            6: "Silhouette (Army): A massive array of dark shapes/soldiers against a light source."
+        }
     };
+
+    // Fallback for counts > 6 to use the "6" key
+    const safeCount = Math.min(Math.max(config.characterCount, 1), 6);
+    const selectedLayoutDesc = COMPOSITION_BY_COUNT[config.layout][safeCount] || COMPOSITION_BY_COUNT['centered'][safeCount];
     const compositionSection = `
     **4. COMPOSITION & CAMERA**
-    - Layout Style: ${layoutInstructions[config.layout]}
+    - Layout Style: ${selectedLayoutDesc}
     - Aspect Ratio: 16:9 (YouTube Standard).
     - Framing: Ensure space is reserved for the text overlay. Avoid cluttering the text areas.
     `;

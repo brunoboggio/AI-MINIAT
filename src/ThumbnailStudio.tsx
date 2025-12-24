@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Palette, Users, Layout, Type, Image as ImageIcon, Sparkles,
-    ArrowRight, Upload, Loader2, Play
+    ArrowRight, Upload, Loader2, Play, Download
 } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -115,9 +115,40 @@ const SidebarControl = ({ label, icon: Icon, children, className }: { label: str
 );
 
 // --- Layout Preview Component ---
-const LayoutPreviewIcon = ({ layout, active }: { layout: LayoutType, active: boolean }) => {
+const LayoutPreviewIcon = ({ layout, active, count = 1 }: { layout: LayoutType, active: boolean, count?: number }) => {
     const color = active ? "#60a5fa" : "#4b5563"; // blue-400 vs gray-600
-    // const bg = active ? "rgba(59, 130, 246, 0.2)" : "transparent";
+
+    // Helper: Generate multiple person shapes based on count and layout strategy
+    const renderShapes = (
+        startX: number,
+        startY: number,
+        w: number,
+        h: number,
+        spacingX: number = 5,
+        spacingY: number = 0,
+        limit: number = 6
+    ) => {
+        const visualCount = Math.min(count, limit);
+        return Array.from({ length: visualCount }).map((_, i) => {
+            // Center the group
+            const totalWidth = (visualCount - 1) * spacingX + w;
+            const offsetX = startX - (totalWidth / 2) + (i * spacingX);
+            const offsetY = startY + (i * spacingY);
+
+            return (
+                <rect
+                    key={i}
+                    x={offsetX}
+                    y={offsetY}
+                    width={w}
+                    height={h}
+                    rx={2}
+                    fill={color}
+                    opacity={0.8 + (i % 2) * 0.1}
+                />
+            );
+        });
+    };
 
     return (
         <svg viewBox="0 0 100 60" className="w-full h-full rounded-sm overflow-hidden" style={{ backgroundColor: '#000' }}>
@@ -126,59 +157,77 @@ const LayoutPreviewIcon = ({ layout, active }: { layout: LayoutType, active: boo
 
             {layout === 'centered' && (
                 <>
-                    <rect x="30" y="10" width="40" height="40" rx="2" fill={color} opacity="0.9" />
-                    <rect x="10" y="20" width="20" height="20" rx="2" fill={color} opacity="0.3" />
-                    <rect x="70" y="20" width="20" height="20" rx="2" fill={color} opacity="0.3" />
+                    {renderShapes(50, 15, 12, 30, 8, 2)}
+                    {/* Spotlight effect */}
+                    <ellipse cx="50" cy="50" rx={20 + (count * 2)} ry="5" fill={color} opacity="0.2" />
                 </>
             )}
             {layout === 'thirds-left' && (
                 <>
                     <line x1="33" y1="0" x2="33" y2="60" stroke="#374151" strokeWidth="1" />
                     <line x1="66" y1="0" x2="66" y2="60" stroke="#374151" strokeWidth="1" />
-                    <rect x="10" y="10" width="35" height="40" rx="2" fill={color} opacity="0.9" />
+                    {renderShapes(22, 15, 10, 30, 6, 2)}
                 </>
             )}
             {layout === 'thirds-right' && (
                 <>
                     <line x1="33" y1="0" x2="33" y2="60" stroke="#374151" strokeWidth="1" />
                     <line x1="66" y1="0" x2="66" y2="60" stroke="#374151" strokeWidth="1" />
-                    <rect x="55" y="10" width="35" height="40" rx="2" fill={color} opacity="0.9" />
+                    {renderShapes(78, 15, 10, 30, 6, 2)}
                 </>
             )}
             {layout === 'vs' && (
                 <>
                     <path d="M45 0 L55 60" stroke="#374151" strokeWidth="2" />
-                    <rect x="5" y="10" width="40" height="40" rx="2" fill={color} opacity="0.5" transform="rotate(-5 25 30)" />
-                    <rect x="55" y="10" width="40" height="40" rx="2" fill="#ef4444" opacity="0.5" transform="rotate(5 75 30)" />
+                    {/* Left Side Group */}
+                    {Array.from({ length: Math.ceil(count / 2) }).map((_, i) => (
+                        <rect key={`l-${i}`} x={10 - (i * 3)} y={15 + (i * 5)} width={15} height={30} rx={2} fill={color} opacity="0.5" transform="rotate(-5 25 30)" />
+                    ))}
                     <text x="50" y="32" fill="white" fontSize="10" fontWeight="bold" textAnchor="middle">VS</text>
+                    {/* Right Side Group */}
+                    {Array.from({ length: Math.floor(count / 2) || 1 }).map((_, i) => (
+                        <rect key={`r-${i}`} x={75 + (i * 3)} y={15 + (i * 5)} width={15} height={30} rx={2} fill="#ef4444" opacity="0.5" transform="rotate(5 75 30)" />
+                    ))}
                 </>
             )}
             {layout === 'reaction' && (
                 <>
                     <rect x="0" y="0" width="100" height="60" fill={color} opacity="0.2" />
-                    <rect x="60" y="30" width="40" height="30" rx="4" fill={color} stroke="#000" strokeWidth="2" />
+                    {/* Background Interest */}
+                    <circle cx="20" cy="20" r="5" fill="#ef4444" opacity="0.5" />
+                    {/* Reaction Faces in Corner */}
+                    {renderShapes(80, 25, 15, 30, 10, -3)}
                 </>
             )}
             {layout === 'group' && (
                 <>
-                    <rect x="35" y="10" width="30" height="30" rx="15" fill={color} opacity="0.9" />
-                    <rect x="15" y="25" width="20" height="20" rx="10" fill={color} opacity="0.6" />
-                    <rect x="65" y="25" width="20" height="20" rx="10" fill={color} opacity="0.6" />
+                    {/* V-Formationish */}
+                    {renderShapes(50, 20, 12, 25, 14, 0)}
+                    {count >= 3 && <rect x="50" y="25" width="12" height="25" rx={2} fill={color} opacity="1" transform="translate(-6, 0)" />}
                 </>
             )}
             {layout === 'perspective' && (
                 <>
-                    <path d="M20 50 L35 20 L65 20 L80 50 Z" fill={color} opacity="0.9" />
+                    <path d="M20 50 L35 20 L65 20 L80 50 Z" fill={color} opacity="0.1" />
                     <rect x="0" y="0" width="100" height="60" fill="url(#grid)" opacity="0.2" />
+                    {/* Foreground Big, Background Small */}
+                    <rect x="10" y="10" width="20" height="40" rx={2} fill={color} opacity="0.9" /> {/* Big */}
+                    {count > 1 && <rect x="40" y="20" width="10" height="20" rx={2} fill={color} opacity="0.7" />}
+                    {count > 2 && <rect x="60" y="25" width="5" height="10" rx={1} fill={color} opacity="0.5" />}
+                    {count > 3 && <rect x="80" y="28" width="3" height="6" rx={0.5} fill={color} opacity="0.3" />}
                 </>
             )}
             {layout === 'brainstorm' && (
                 <>
                     <circle cx="50" cy="30" r="15" stroke={color} fill="none" strokeWidth="2" />
-                    <circle cx="20" cy="20" r="8" fill={color} opacity="0.5" />
-                    <circle cx="80" cy="20" r="8" fill={color} opacity="0.5" />
-                    <circle cx="20" cy="40" r="8" fill={color} opacity="0.5" />
-                    <circle cx="80" cy="40" r="8" fill={color} opacity="0.5" />
+                    {/* Orbiting dots based on count */}
+                    {Array.from({ length: count }).map((_, i) => {
+                        const angle = (i / count) * 2 * Math.PI;
+                        const r = 20;
+                        const cx = 50 + r * Math.cos(angle);
+                        const cy = 30 + r * Math.sin(angle);
+                        return <circle key={i} cx={cx} cy={cy} r={4} fill={color} opacity="0.7" />;
+                    })}
                 </>
             )}
             {layout === 'split' && (
@@ -186,12 +235,25 @@ const LayoutPreviewIcon = ({ layout, active }: { layout: LayoutType, active: boo
                     <rect x="0" y="0" width="50" height="60" fill={color} opacity="0.6" />
                     <rect x="50" y="0" width="50" height="60" fill="#000" opacity="0.9" />
                     <line x1="50" y1="0" x2="50" y2="60" stroke="#fff" strokeWidth="1" />
+                    {/* Distributed People */}
+                    {Array.from({ length: count }).map((_, i) => (
+                        <rect
+                            key={i}
+                            x={i % 2 === 0 ? 15 : 65}
+                            y={15 + Math.floor(i / 2) * 10}
+                            width={15}
+                            height={25}
+                            rx={2}
+                            fill={i % 2 === 0 ? color : "#ef4444"}
+                            opacity="0.8"
+                        />
+                    ))}
                 </>
             )}
             {layout === 'silhouette' && (
                 <>
-                    <rect x="30" y="10" width="40" height="40" fill="#000" rx="10" />
                     <rect x="0" y="0" width="100" height="60" fill={color} opacity="0.3" style={{ mixBlendMode: 'overlay' }} />
+                    {renderShapes(50, 20, 15, 40, 12, 2)}
                 </>
             )}
         </svg>
@@ -256,9 +318,9 @@ export default function ThumbnailStudio() {
         { value: 'imagen-3.0-generate-001', label: 'Imagen 3 (Standard)', price: '~ $0.03 / img' },
         { value: 'imagen-3.0-fast-generate-001', label: 'Imagen 3 (Fast)', price: '~ $0.03 / img' },
         { value: 'imagen-3.0-generate-002', label: 'Imagen 3.0 v2', price: '~ $0.03 / img' },
-        // Actualizados según investigación (Versión Gemini 3 Image):
+        // Gemini Image Models (Nano Banana series):
         { value: 'gemini-2.5-flash-image', label: 'Nano Banana (Gemini 2.5 Flash)', price: 'Low Latency' },
-        { value: 'gemini-3.0-pro-image-preview', label: 'Nano Banana Pro (Gemini 3 Pro)', price: 'High Quality' },
+        { value: 'gemini-3-pro-image-preview', label: 'Nano Banana Pro (Gemini 3 Pro)', price: '~ $0.13-0.24 / img' },
     ];
 
 
@@ -304,6 +366,35 @@ export default function ThumbnailStudio() {
             generatedPrompt: prompt,
             generatedImage: realImageUrl
         }));
+    };
+
+    const handleDownloadImage = () => {
+        const imageToDownload = state.step === 'adaptation' && state.adaptationImage
+            ? state.adaptationImage
+            : state.generatedImage;
+
+        if (!imageToDownload) return;
+
+        const link = document.createElement('a');
+        link.href = imageToDownload;
+        link.download = `miniat-studio-${state.step}-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleResetToStage1 = () => {
+        setState(prev => ({ ...prev, step: 'draft' }));
+    };
+
+    const handleStage2Completion = () => {
+        // Option A: Just go back to Stage 1 to start over or refine
+        handleResetToStage1();
+    };
+
+    const handleReferenceUpload = (file: File) => {
+        const url = URL.createObjectURL(file);
+        setState(prev => ({ ...prev, generatedImage: url }));
     };
 
     const handleApproveDraft = () => {
@@ -424,12 +515,28 @@ export default function ThumbnailStudio() {
                         AI MINIAT <span className="text-white not-italic font-light tracking-widest text-sm opacity-50 ml-1">STUDIO</span>
                     </h1>
                     <div className="flex items-center gap-2 mt-2">
-                        <div className={cn("h-1 w-full rounded-full transition-all duration-300", state.step === 'draft' ? "bg-blue-500" : "bg-green-500")} />
-                        <div className={cn("h-1 w-full rounded-full transition-all duration-300", state.step === 'adaptation' ? "bg-blue-500" : "bg-gray-700")} />
+                        <button
+                            onClick={() => setState(prev => ({ ...prev, step: 'draft' }))}
+                            className={cn("h-1 w-full rounded-full transition-all duration-300 cursor-pointer hover:opacity-80", state.step === 'draft' ? "bg-blue-500" : "bg-green-500")}
+                        />
+                        <button
+                            onClick={() => state.generatedDraft && setState(prev => ({ ...prev, step: 'adaptation' }))}
+                            className={cn("h-1 w-full rounded-full transition-all duration-300",
+                                state.step === 'adaptation' ? "bg-blue-500" : "bg-gray-700",
+                                state.generatedDraft ? "cursor-pointer hover:bg-blue-400/50" : "cursor-not-allowed"
+                            )}
+                        />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 font-mono uppercase">
-                        {state.step === 'draft' ? 'Etapa 1: Estructura & Concepto' : 'Etapa 2: Realismo'}
-                    </p>
+                    <div className="flex justify-between items-center mt-1">
+                        <p className="text-xs text-gray-500 font-mono uppercase">
+                            {state.step === 'draft' ? 'Etapa 1: Estructura & Concepto' : 'Etapa 2: Realismo'}
+                        </p>
+                        {state.step === 'adaptation' && (
+                            <button onClick={handleResetToStage1} className="text-[10px] text-blue-400 hover:text-white transition-colors uppercase font-bold tracking-wider">
+                                Volver a Etapa 1
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
@@ -540,7 +647,7 @@ export default function ThumbnailStudio() {
                                             )}
                                         >
                                             <div className="w-full aspect-video rounded overflow-hidden bg-black/50 border border-white/5 group-hover:border-white/20 transition-colors">
-                                                <LayoutPreviewIcon layout={l.id} active={state.config.layout === l.id} />
+                                                <LayoutPreviewIcon layout={l.id} active={state.config.layout === l.id} count={state.config.characterCount} />
                                             </div>
                                             <span className={cn(
                                                 "text-[10px] uppercase tracking-wider font-semibold",
@@ -619,8 +726,16 @@ export default function ThumbnailStudio() {
                                                 </span>
                                             </div>
                                         )}
-                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 p-1 text-[9px] text-center text-gray-300 backdrop-blur-sm opacity-0 group-hover/ref:opacity-100 transition-opacity">
-                                            Imagen Base (Layout)
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover/ref:opacity-100 transition-opacity backdrop-blur-sm">
+                                            <label className="cursor-pointer bg-white text-black px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider hover:scale-105 transition-transform flex items-center gap-2">
+                                                <Upload className="w-3 h-3" /> Subir Ref
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={(e) => e.target.files?.[0] && handleReferenceUpload(e.target.files[0])}
+                                                />
+                                            </label>
                                         </div>
                                     </div>
                                 </div>
@@ -777,14 +892,24 @@ export default function ThumbnailStudio() {
                         </>
                     ) : (
                         <>
-                            <button
-                                onClick={handleAdaptation}
-                                disabled={adaptationLoading || adaptationDone}
-                                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2 mt-8"
-                            >
-                                {adaptationLoading ? <Loader2 className="animate-spin" /> : <Play className="fill-current w-5 h-5" />}
-                                {adaptationLoading ? 'Adaptando con IA...' : adaptationDone ? '¡Completado!' : 'Adaptar Personajes (IA)'}
-                            </button>
+                            <div className="flex flex-col gap-2 mt-8">
+                                <button
+                                    onClick={handleAdaptation}
+                                    disabled={adaptationLoading || adaptationDone}
+                                    className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-900/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    {adaptationLoading ? <Loader2 className="animate-spin" /> : <Play className="fill-current w-5 h-5" />}
+                                    {adaptationLoading ? 'Adaptando con IA...' : adaptationDone ? '¡Completado!' : 'Adaptar Personajes (IA)'}
+                                </button>
+                                {adaptationDone && (
+                                    <button
+                                        onClick={handleStage2Completion}
+                                        className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                                    >
+                                        <ArrowRight className="w-4 h-4" /> Volver a Etapa 1 / Finalizar
+                                    </button>
+                                )}
+                            </div>
                             {adaptationError && (
                                 <div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-xs text-center">
                                     {adaptationError}
@@ -803,6 +928,14 @@ export default function ThumbnailStudio() {
                         <span className="text-gray-500 text-sm">Proyecto: <span className="text-white font-medium">Sin Título 1</span></span>
                     </div>
                     <div className="flex gap-4">
+                        <button
+                            onClick={handleDownloadImage}
+                            disabled={!state.generatedImage && !(state.step === 'adaptation' && state.adaptationImage)}
+                            className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Descargar Imagen"
+                        >
+                            <Download className="w-5 h-5" />
+                        </button>
                         <button className="text-gray-400 hover:text-white transition-colors"><Layout className="w-5 h-5" /></button>
                         <button className="text-gray-400 hover:text-white transition-colors"><ImageIcon className="w-5 h-5" /></button>
                     </div>
