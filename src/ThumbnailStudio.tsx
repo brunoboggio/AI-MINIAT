@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Palette, Users, Layout, Type, Image as ImageIcon, Sparkles,
-    ArrowRight, Upload, Loader2, Play, Download
+    ArrowRight, Upload, Loader2, Play, Download, Copy, Check
 } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -29,6 +29,7 @@ interface AppState {
     config: ThumbnailConfig;
     generatedDraft: boolean; // Has the "AI" generated the draft?
     generatedPrompt: string; // The text prompt generated for the AI
+    adaptationPrompt?: string; // The prompt for Stage 2
 
     generatedImage?: string; // Real AI Image URL (base64)
     characterImages: Record<number, string[]>; // Slot ID -> Image URLs (Max 5)
@@ -287,6 +288,7 @@ export default function ThumbnailStudio() {
 
         generatedDraft: false,
         generatedPrompt: '',
+        adaptationPrompt: '',
         characterImages: {},
     });
 
@@ -368,6 +370,22 @@ export default function ThumbnailStudio() {
         }));
     };
 
+    const handlePreviewPrompt = () => {
+        const prompt = generateImagePrompt(state.config);
+        setState(prev => ({
+            ...prev,
+            generatedPrompt: prompt
+        }));
+    };
+
+    const handlePreviewAdaptationPrompt = () => {
+        const prompt = generateAdaptationPrompt(state.config, state.characterImages);
+        setState(prev => ({
+            ...prev,
+            adaptationPrompt: prompt
+        }));
+    };
+
     const handleDownloadImage = () => {
         const imageToDownload = state.step === 'adaptation' && state.adaptationImage
             ? state.adaptationImage
@@ -432,6 +450,12 @@ export default function ThumbnailStudio() {
         // 1. Generate Prompt
         const adaptPrompt = generateAdaptationPrompt(state.config, state.characterImages);
         console.log("Generación de Prompt Adaptación:", adaptPrompt);
+
+        // Update state with the prompt so we can see it during/after generation
+        setState(prev => ({
+            ...prev,
+            adaptationPrompt: adaptPrompt
+        }));
 
         // 2. Prepare Images (Reference + Characters)
         const inputImages: InputImage[] = [];
@@ -503,6 +527,14 @@ export default function ThumbnailStudio() {
             // Base
             return <span key={i} className={state.config.textColorBase}>{part}</span>;
         });
+    };
+
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyPromptToClipboard = () => {
+        navigator.clipboard.writeText(state.generatedPrompt);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
     };
 
     return (
@@ -868,6 +900,15 @@ export default function ThumbnailStudio() {
                                 {isGenerating ? 'Generando Diseño...' : 'Generar Miniatura IA'}
                             </button>
 
+                            <button
+                                onClick={handlePreviewPrompt}
+                                disabled={isGenerating}
+                                className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider mt-2 group"
+                            >
+                                <Type className="w-4 h-4 group-hover:text-blue-400 transition-colors" />
+                                Previsualizar Prompt
+                            </button>
+
                             {apiError && (
                                 <div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-xs text-center">
                                     {apiError}
@@ -877,14 +918,49 @@ export default function ThumbnailStudio() {
                             {state.generatedDraft && (
                                 <div className="mt-4 animate-fadeIn">
                                     <div className="bg-[#0d1117] border border-green-900/50 rounded-lg p-3">
-                                        <div className="flex items-center gap-2 mb-2 text-green-400 text-xs font-bold uppercase tracking-wider">
-                                            <Sparkles className="w-3 h-3" />
-                                            Prompt Generado (Debug)
+                                        <div className="flex items-center justify-between mb-2 text-green-400">
+                                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                                <Sparkles className="w-3 h-3" />
+                                                Prompt Generado (Debug)
+                                            </div>
+                                            <button
+                                                onClick={handleCopyPromptToClipboard}
+                                                className="hover:text-white transition-colors"
+                                                title="Copiar prompt"
+                                            >
+                                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                            </button>
                                         </div>
                                         <textarea
                                             readOnly
                                             value={state.generatedPrompt}
                                             className="w-full bg-black/30 text-green-300 text-[10px] font-mono p-2 rounded h-24 resize-none focus:outline-none scrollbar-thin scrollbar-thumb-green-900"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* PROMPT PREVIEW AREA (Shows up if we have a prompt but NOT a draft image yet, e.g. from Preview) */}
+                            {!state.generatedDraft && state.generatedPrompt && (
+                                <div className="mt-4 animate-fadeIn">
+                                    <div className="bg-[#0d1117] border border-blue-900/50 rounded-lg p-3">
+                                        <div className="flex items-center justify-between mb-2 text-blue-400">
+                                            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                                <Type className="w-3 h-3" />
+                                                Previsualización del Prompt
+                                            </div>
+                                            <button
+                                                onClick={handleCopyPromptToClipboard}
+                                                className="hover:text-white transition-colors"
+                                                title="Copiar prompt"
+                                            >
+                                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                            </button>
+                                        </div>
+                                        <textarea
+                                            readOnly
+                                            value={state.generatedPrompt}
+                                            className="w-full bg-black/30 text-blue-300 text-[10px] font-mono p-2 rounded h-24 resize-none focus:outline-none scrollbar-thin scrollbar-thumb-blue-900"
                                         />
                                     </div>
                                 </div>
@@ -901,6 +977,47 @@ export default function ThumbnailStudio() {
                                     {adaptationLoading ? <Loader2 className="animate-spin" /> : <Play className="fill-current w-5 h-5" />}
                                     {adaptationLoading ? 'Adaptando con IA...' : adaptationDone ? '¡Completado!' : 'Adaptar Personajes (IA)'}
                                 </button>
+
+                                <button
+                                    onClick={handlePreviewAdaptationPrompt}
+                                    disabled={adaptationLoading}
+                                    className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-xl border border-white/5 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider mt-2 group"
+                                >
+                                    <Type className="w-4 h-4 group-hover:text-green-400 transition-colors" />
+                                    Previsualizar Prompt
+                                </button>
+
+                                {/* STAGE 2 PROMPT PREVIEW */}
+                                {state.adaptationPrompt && !adaptationDone && (
+                                    <div className="mt-4 animate-fadeIn">
+                                        <div className="bg-[#0d1117] border border-green-900/50 rounded-lg p-3">
+                                            <div className="flex items-center justify-between mb-2 text-green-400">
+                                                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider">
+                                                    <Type className="w-3 h-3" />
+                                                    Prompt Adaptación
+                                                </div>
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(state.adaptationPrompt || '');
+                                                        setCopied(true);
+                                                        setTimeout(() => setCopied(false), 2000);
+                                                    }}
+                                                    className="hover:text-white transition-colors"
+                                                    title="Copiar prompt"
+                                                >
+                                                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                                </button>
+                                            </div>
+                                            <textarea
+                                                readOnly
+                                                value={state.adaptationPrompt}
+                                                className="w-full bg-black/30 text-green-300 text-[10px] font-mono p-2 rounded h-24 resize-none focus:outline-none scrollbar-thin scrollbar-thumb-green-900"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+
                                 {adaptationDone && (
                                     <button
                                         onClick={handleStage2Completion}
