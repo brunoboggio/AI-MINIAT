@@ -193,11 +193,10 @@ export function generateImagePrompt(config: ThumbnailConfig): string {
 
 export function generateAdaptationPrompt(config: ThumbnailConfig, characterImages: Record<number, string[]>): string {
     // ============================================================
-    // STAGE 2: FACE REPLACEMENT PROMPT (Multi-Modal Approach)
+    // STAGE 2: FULL CHARACTER ADAPTATION PROMPT (Multi-Modal Approach)
     // ============================================================
-    // This prompt is COMPLETELY DIFFERENT from Stage 1.
-    // Stage 1 = Create from scratch (text → image)
-    // Stage 2 = Modify existing image (image + photos → modified image)
+    // GOAL: Realistic adaptation of the character identity while strictly preserving
+    // the clothing, pose, and expression from the draft.
     // ============================================================
 
     // Build position descriptions based on layout
@@ -232,16 +231,16 @@ export function generateAdaptationPrompt(config: ThumbnailConfig, characterImage
 
             characterMappingText += `
     **PERSON ${i + 1}** (Position: ${position})
-    - Reference photos: ${imageRange}
-    - ${count > 1 ? `Multiple angles provided for maximum likeness accuracy` : `Single reference provided`}
-    - ACTION: Replace the character at this position with this person's face and features
+    - SOURCE IDENTITY: Same person as seen in ${imageRange}
+    - ACTION: ADAPT this specific person into the scene at this position.
+    - CONSTRAINT: Match the body type and facial structure of the person in the reference photos strictly.
 `;
             imageIndexCounter += count;
         } else {
             characterMappingText += `
     **PERSON ${i + 1}** (Position: ${position})
-    - Reference photos: NONE PROVIDED
-    - ACTION: Keep the existing character or generate a fitting placeholder
+    - SOURCE IDENTITY: GENERIC / UNKNOWN
+    - ACTION: Keep the existing character or generate a fitting high-quality realistic person.
 `;
         }
     }
@@ -263,62 +262,66 @@ export function generateAdaptationPrompt(config: ThumbnailConfig, characterImage
     const lightingNote = lightingInstructions[config.palette] || 'cinematic lighting matching the scene';
 
     return `
-[FACE REPLACEMENT TASK - NANO BANANA PRO OPTIMIZED]
+[FULL CHARACTER ADAPTATION TASK - ULTRA REALISTIC]
 
-You are receiving multiple images for a FACE REPLACEMENT task. This is NOT a generation task - you are MODIFYING an existing thumbnail.
+You are an expert digital artist specializing in photorealistic compositing.
+You are receiving multiple images.
+- **IMAGE 1**: The Draft/Template Image.
+- **OTHER IMAGES**: Reference photos of real people.
+
+**YOUR GOAL**:
+Regenerate the characters in **IMAGE 1** to look like the REAL people provided in the reference photos, while keeping the EXACT clothing, pose, and expression from **IMAGE 1**.
 
 ═══════════════════════════════════════════════════════════════
                         IMAGE INPUT MAPPING
 ═══════════════════════════════════════════════════════════════
 
-**IMAGE 1: BASE THUMBNAIL (THE REFERENCE)**
-- This is the thumbnail layout you MUST preserve
-- Keep: ALL text, background, effects, composition, lighting mood
-- Modify: ONLY the face regions of the characters
+**IMAGE 1: THE DRAFT (MASTER REFERENCE)**
+- Contains the REQUIRED Outfit, Pose, Background, and Expression.
+- This is the "Container" you must fill with the new person's identity.
 
 ${characterMappingText}
 
 ═══════════════════════════════════════════════════════════════
-                      CRITICAL INSTRUCTIONS
+                      STRICT RULES (DO NOT BREAK)
 ═══════════════════════════════════════════════════════════════
 
-1. **PRESERVE EVERYTHING FROM IMAGE 1 EXCEPT FACES**
-   ✓ Text overlay → KEEP EXACTLY as-is (no modifications, no repositioning)
-   ✓ Background → KEEP EXACTLY as-is
-   ✓ Composition/Layout → KEEP EXACTLY as-is
-   ✓ Overall lighting mood → KEEP as-is
-   ✗ Character faces → REPLACE with reference photos
+1.  **FULL BODY REALISM (THE MOST IMPORTANT RULE)**
+    - Do NOT just paste a face. You must adapt the entire head and visible skin to match the reference person's physiology (skin texture, age, bone structure).
+    - The result must look **PHOTOREALISTIC** and **ULTRA-DETAILED**. Not cartoonish, not painted. It must look like a high-end photograph.
 
-2. **IDENTITY MATCHING (99% ACCURACY REQUIRED)**
-   - The replaced faces MUST look EXACTLY like the people in the reference photos
-   - Match: facial structure, nose shape, eye shape, skin tone, facial hair
-   - If multiple reference angles are provided, use them ALL to understand the face from different perspectives
-   - The result should be indistinguishable from a real photo of that person
+2.  **OUTFIT PRESERVATION**
+    - The characters MUST wear the **EXACT SAME CLOTHES** as shown in **IMAGE 1**.
+    - If Image 1 shows a red hoodie, the new person wears that red hoodie.
+    - Do not change colors or styles of the clothing.
 
-3. **EXPRESSION & POSE ADAPTATION**
-   - Keep the IDENTITY from the reference photos
-   - Apply the EXPRESSION and HEAD ANGLE from IMAGE 1
-   - Example: If IMAGE 1 shows a screaming pose, make the person from the reference scream
+3.  **EXPRESSION & POSE MATCHING**
+    - The new person MUST copy the **EXACT FACIAL EXPRESSION** from **IMAGE 1**.
+    - If the character in Image 1 is screaming, the reference person must be screaming.
+    - If the character in Image 1 is smiling, the reference person must be smiling.
+    - Match the head tilt and eye direction precisely.
 
-4. **LIGHTING & SEAMLESS BLENDING**
-   - Face lighting: ${lightingNote}
-   - Match the lighting direction from IMAGE 1
-   - Ensure skin tones blend naturally with the scene
-   - Add appropriate rim lights/reflections to match the environment
-   - NO visible seams, mismatched shadows, or color temperature issues
+4.  **IDENTITY CONSISTENCY**
+    - The person in the final image must be instantly recognizable as the person in the Reference Photos.
+    - Match their specific features: Nose shape, eye shape, ear shape, jawline.
 
-5. **TEXT PROTECTION (CRITICAL)**
-   - The text "${config.title.replace(/\*/g, '')}" must remain UNTOUCHED
-   - Do NOT generate new text, move existing text, or allow faces to overlap text
-   - Text is SACRED - pixel-perfect preservation required
+5.  **SCENE INTEGRATION**
+    - Lighting: ${lightingNote}
+    - The characters must look like they are physically present in the environment of **IMAGE 1**.
+    - Shadows and reflections must match the background.
 
-═══════════════════════════════════════════════════════════════
-                        OUTPUT REQUIREMENTS
-═══════════════════════════════════════════════════════════════
+6.  **TEXT & BACKGROUND PRESERVATION**
+    - **DO NOT TOUCH THE TEXT.** The text "${config.title.replace(/\*/g, '')}" must remain UNTOUCHED
+    - **DO NOT CHANGE THE BACKGROUND.** Keep the background art exactly as it is.
 
-- Resolution: 1920x1080 (16:9 YouTube Standard)
-- Quality: Photorealistic, professional YouTube thumbnail quality
-- The result should look like the ORIGINAL thumbnail but with DIFFERENT PEOPLE
-- No AI artifacts, no blurry regions, no uncanny valley effects
+7.  **ASPECT RATIO (CRITICAL)**
+    - The output MUST be **16:9** (Landscape).
+    - Do NOT produce square or portrait images.
+
+
+**SUMMARY**:
+Take the CLOTHES and POSE from IMAGE 1.
+Put the PERSON (Identity/Skin/Structure) from the REFERENCE PHOTOS inside those clothes.
+Make it look like a 8k ULTRA-REALISTIC PHOTOGRAPH.
 `.trim();
 }

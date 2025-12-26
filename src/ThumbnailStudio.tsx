@@ -378,12 +378,28 @@ export default function ThumbnailStudio() {
         }));
     };
 
-    const handlePreviewAdaptationPrompt = () => {
-        const prompt = generateAdaptationPrompt(state.config, state.characterImages);
+    const handleSkipToStage2 = () => {
+        const prompt = generateImagePrompt(state.config);
         setState(prev => ({
             ...prev,
-            adaptationPrompt: prompt
+            generatedPrompt: prompt,
+            generatedDraft: true,
+            step: 'adaptation'
         }));
+    };
+
+    const handlePreviewAdaptationPrompt = () => {
+        try {
+            console.log("Generating Adaptation Prompt... Config:", state.config);
+            const prompt = generateAdaptationPrompt(state.config, state.characterImages);
+            console.log("Adaptation Prompt Generated:", prompt);
+            setState(prev => ({
+                ...prev,
+                adaptationPrompt: prompt
+            }));
+        } catch (e) {
+            console.error("Error generating adaptation prompt:", e);
+        }
     };
 
     const handleDownloadImage = () => {
@@ -909,6 +925,15 @@ export default function ThumbnailStudio() {
                                 Previsualizar Prompt
                             </button>
 
+                            <button
+                                onClick={handleSkipToStage2}
+                                disabled={isGenerating}
+                                className="w-full bg-transparent hover:bg-gray-800 text-gray-500 hover:text-gray-300 font-bold py-2 rounded-xl transition-all flex items-center justify-center gap-2 text-[10px] uppercase tracking-wider mt-2 group border border-dashed border-gray-800 hover:border-gray-600"
+                            >
+                                <ArrowRight className="w-3 h-3" />
+                                Ir a Stage 2 (Sin Imagen)
+                            </button>
+
                             {apiError && (
                                 <div className="mt-2 p-2 bg-red-900/50 border border-red-700 rounded text-red-200 text-xs text-center">
                                     {apiError}
@@ -988,7 +1013,7 @@ export default function ThumbnailStudio() {
                                 </button>
 
                                 {/* STAGE 2 PROMPT PREVIEW */}
-                                {state.adaptationPrompt && !adaptationDone && (
+                                {state.adaptationPrompt && (
                                     <div className="mt-4 animate-fadeIn">
                                         <div className="bg-[#0d1117] border border-green-900/50 rounded-lg p-3">
                                             <div className="flex items-center justify-between mb-2 text-green-400">
